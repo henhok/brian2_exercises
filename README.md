@@ -1,1 +1,1 @@
-brian2_exercises... :)
+Collection of scripts for the BRIAN2 simulator for spiking neurons
