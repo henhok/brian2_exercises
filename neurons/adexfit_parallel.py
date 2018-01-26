@@ -38,7 +38,7 @@ import adexfit_eval2 as adexeval
 
 # Initialize the neuron to be fitted
 current_steps = [-0.084106, 0.2073756, 0.2246569, 0.2419382]
-test_target = adexeval.MarkramStepInjectionTraces('L4_PC_cADpyr230_3/hoc_recordings/', 'soma_voltage_step', current_steps)
+test_target = adexeval.MarkramStepInjectionTraces('bbp_traces/L4_PC_cADpyr230_3/hoc_recordings/', 'soma_voltage_step', current_steps)
 passive_params = {'C': 1 * pF, 'gL': 1 * nS, 'EL': -72 * mV,
                   'VT': -56 * mV, 'DeltaT': 4 * mV,
                   'Vcut': 20 * mV, 'refr_time': 4 * ms}
@@ -62,8 +62,8 @@ bounds = np.array([[-10, 10], [0, 300], [0, 400], [-70, -50]])
 # bounds = np.array([[-5, 5], [0, 300], [0, 400], [-70, -40], [-60, -40], [0.2, 4]])
 
 # Set optimization parameters here
-NGEN = 10
-POP_SIZE = 200
+NGEN = 5
+POP_SIZE = 25
 OFFSPRING_SIZE = POP_SIZE
 CXPB = 0.7   # crossover fraction
 MUTPB = 0.3  # mutation frequency
@@ -124,6 +124,12 @@ toolbox.register(
     "select",
     tools.selNSGA2)
 
+opthistory = tools.History()
+toolbox.decorate("mate", opthistory.decorator)
+toolbox.decorate("mutate", opthistory.decorator)
+
+
+
 
 # FOLLOWING RUN ONLY BY ROOT PROCESS
 if __name__ == '__main__':
@@ -134,6 +140,7 @@ if __name__ == '__main__':
     toolbox.register("map", pool.map)
 
     pop = toolbox.population(n=MU)
+    opthistory.update(pop)
     hof = tools.HallOfFame(N_HALLOFFAME)
 
     # feature_names = ['Spikecount_stimint', 'inv_time_to_first_spike', 'inv_first_ISI', 'inv_last_ISI', 'AHP_depth_abs']
@@ -180,3 +187,7 @@ if __name__ == '__main__':
     for params in hof:
         print "%d. %s" % (i, str(params))
         i += 1
+
+    #print 'Saving genealogy'
+    # take genealogy_history (dict) to pandas
+    # calculate fitness for each

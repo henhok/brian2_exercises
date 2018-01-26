@@ -6,6 +6,8 @@ duration = 1*second
 refr_time = 4*ms
 
 
+
+
 # Parameters
 C = 181*pF
 gL = 4.6*nS

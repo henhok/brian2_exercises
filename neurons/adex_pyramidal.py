@@ -19,10 +19,10 @@ Vcut = -25*mV
 EL = -70.11*mV
 
 # Adaptation parameters
-V_res = -50*mV
+V_res = -55*mV
 tau_w = 200*ms
 a = 0.1*nsiemens
-b = 130*pA
+b = 200*pA
 
 # Dendritic parameters
 neuron_namespace = dict()
@@ -217,7 +217,7 @@ M_spikes = SpikeMonitor(G)
 
 rheobase = compute_rheobase()
 print 'Rheobase: ' + str(rheobase)
-rheobase=115*pA
+# rheobase=115*pA
 print 'Rheobase: ' + str(rheobase)
 test_currents = np.array([0.95, 1.05, 1.2, 1.3, 1.4])
 print 'Stimuli (x rheobase): ' + str(test_currents*rheobase)

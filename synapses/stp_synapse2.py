@@ -5,7 +5,9 @@
 
 from brian2 import *
 import matplotlib.pyplot as plt
+import efel
 
+efel.api.setThreshold(-69.5)
 
 refr_time = 4*ms
 defaultclock_dt = 0.1*ms  # Just for visualization! Changing this doesn't change the clock.
@@ -112,7 +114,7 @@ eq_soma = '''
 
 
 # Main
-G = NeuronGroup(4, eq_soma, threshold='vm > '+repr(Vcut), reset='vm = '+repr(V_res), refractory=refr_time, method='euler')
+G = NeuronGroup(1, eq_soma, threshold='vm > '+repr(Vcut), reset='vm = '+repr(V_res), refractory=refr_time, method='euler')
 G.vm = EL
 G.gi = 0
 G.ge = 0
@@ -123,134 +125,105 @@ M_spikes = SpikeMonitor(G)
 
 ### STP parameters ###
 taurec1 = 450*ms
-taurec2 = 450*ms
-taufacil = 100*ms
-U = 0.5
-U1 = 0.02
+U = 0.25
+
+taurec2 = 130*ms
+taufacil = 670*ms
+U1 = 0.09
+
 w = 0.80*nS
 
-### SYNAPSE 1 Depr. ###
-H = PoissonGroup(1, 50*Hz)
+### SYNAPSE Depr. ###
+# H = PoissonGroup(1, 50*Hz)
+base_firing_rate = 10 #*Hz
+N_synapses = 5
+spike_times = np.linspace(1, 2, base_firing_rate)*second
+spikegroup_indices = list(np.zeros(base_firing_rate))
+spikegroup_times = list(spike_times)
+for i in arange(1,N_synapses):
+    spikegroup_indices.extend(np.ones(base_firing_rate)*i)
+    spikegroup_times.extend(list(spike_times))
+
+# H = SpikeGeneratorGroup(1, np.zeros(base_firing_rate),spike_times)
+H = SpikeGeneratorGroup(N_synapses, spikegroup_indices, spikegroup_times)
+
 
 # Clock-driven depressing
 # R - resources ie. presynaptic vesicles
 # Whether to have ge_post += U*R*w or R*w is a question of taste (what "w" represents; release of U*all_vesicles or all_vesicles)
-S = Synapses(H, G,
-             model='dR/dt = (1-R)/taurec1 : 1 (clock-driven)',
-             on_pre=''' ge_post += R * w
-                        R = (1-U)*R ''')
-
-# Event-driven depressing
-# (because for some reason Brian2 refuses to solve the eq above)
-# Think: R_new = whatever resources we had + what was recovered after previous spike
-S_alt = Synapses(H, G,
-             model='R:1',
-             on_pre=''' R = R + (1-R)*(1 - exp(-(t-lastupdate)/taurec2))
-                        ge_post += R * w
-                        R = (1-U)*R''')
-
-
-
-
-S.connect(i=0, j=0)
-S_alt.connect(i=0, j=1)
-
-S.R = 1
-S_alt.R = 1
-
-### SYNAPSE 2 Facil. ###
-#I = PoissonGroup(1, 23*Hz)
+# S = Synapses(H, G,
+#              model='dR/dt = (1-R)/taurec1 : 1 (clock-driven)',
+#              on_pre=''' ge_post += R * w
+#                         R = (1-U)*R ''')
 
 # Facilitating clock-driven
-S2 = Synapses(H, G,
+S = Synapses(H, G,
              model=''' dR/dt = (1-R)/taurec2 : 1 (clock-driven)
                        du/dt = (U1-u)/taufacil : 1 (clock-driven) ''',
-             on_pre=''' ge_post += R * w
+             on_pre=''' ge_post += R * u * w
                         R = (1-u)*R
                         u = u + U1*(1-u)''')
 
-# Facilitating event-driven
-S2_alt = Synapses(H, G,
-             model=''' R : 1
-                       u : 1 ''',
-             on_pre=''' R = R + (1-R)*(1 - exp(-(t-lastupdate)/taurec2))
-                        u = u + (U1-u)*(1 - exp(-(t-lastupdate)/taufacil))
-                        ge_post += R * w
-                        R = (1-u)*R
-                        u = u + U1*(1-u)''')
-#u = u * exp(-(t-lastupdate)/taufacil)
-
-
-S2.connect(i=0, j=2)
-S2_alt.connect(i=0, j=3)
-
-S2.u = U1
-S2.R = 1
-S2_alt.u = U1
-S2_alt.R = 1
+S.connect()
+S.R = 1
 
 ########################
 SM = StateMonitor(S, ('R'), record=True)
-S_altM = StateMonitor(S_alt, ('R'), record=True)
 
-S2M = StateMonitor(S2, ('R', 'u'), record=True)
-S2_altM = StateMonitor(S2_alt, ('R', 'u'), record=True)
 
 # SM2 = StateMonitor(S2, ('R'), record=True)
-run(2000 * ms)
+run(3000 * ms)
+vm_lim = [-75, -55]
+
+# traces = []
+# trace = {}
+# trace['T'] = M.t/ms
+# trace['V'] = M.vm[0]/mV
+# trace['stim_start'] = [1000]
+# trace['stim_end'] = [2000]
+# traces.append(trace)
+# stuff = efel.getMeanFeatureValues(traces, ['peak_indices'])
+#
+# print stuff
 
 
-plt.subplots(2,2)
-plt.suptitle('Clock- vs. event-driven synapses with STP')
-
-vm_lim = [-70.1, -68.5]
-
+plt.subplots(1,3)
 ### Membrane voltage plot
-plt.subplot(2,2,1)
+plt.subplot(1,3,1)
 plt.title('$V_m$ (depressing)')
 plt.plot(M.t/ms, M.vm[0]/mV, label='CD')
-plt.plot(M.t/ms, M.vm[1]/mV, label='ED')
-# plt.plot(M_spikes.t/ms, [0*mV] * len(M_spikes.t), '.')
+baseline_times = spike_times
+spike_times = spike_times + 7*ms
+peak_volt_indices = (spike_times/ms)/0.1
+peak_volts = [M.vm[0][int(i)] for i in peak_volt_indices]
+baseline_volt_indices = (baseline_times/ms)/0.1
+baseline_volts = [M.vm[0][int(i)] for i in baseline_volt_indices]
+
+plt.plot(spike_times/ms, peak_volts/mV, '.')
 xlabel('Time (ms)')
 ylabel('V_m (V)')
 plt.legend()
 plt.ylim(vm_lim)
 
 ###
-plt.subplot(2,2,2)
+plt.subplot(1,3,2)
 plt.title('R (depressing)')
 plt.plot(SM.t/ms, SM.R[0], label='CD')
-plt.plot(S_altM.t/ms, S_altM.R[0], label='ED')
 xlabel('Time (ms)')
 ylabel('Frac. resources (1)')
 plt.ylim([0, 1])
 plt.legend()
 
-### Membrane voltage plot
-plt.subplot(2,2,3)
-plt.title('$V_m$ (facil)')
-plt.plot(M.t/ms, M.vm[2]/mV, label='CD')
-plt.plot(M.t/ms, M.vm[3]/mV, label='ED')
-# plt.plot(M.t/ms, M.vm[1]/mV, label='Neuron 2')
-# plt.plot(M_spikes.t/ms, [0*mV] * len(M_spikes.t), '.')
-xlabel('Time (ms)')
-ylabel('V_m (V)')
-plt.legend()
-plt.ylim(vm_lim)
-
 ###
-plt.subplot(2,2,4)
-plt.title('R, u (facil)')
-plt.plot(S2M.t/ms, S2M.R[0], label='R, CD')
-plt.plot(S2M.t/ms, S2M.u[0], label='u, CD')
-plt.plot(S2_altM.t/ms, S2_altM.R[0], label='R, ED')
-plt.plot(S2_altM.t/ms, S2_altM.u[0], label='u, ED')
-# plt.plot(S_altM.t/ms, S_altM.R[0], label='Event-driven')
-xlabel('Time (ms)')
-ylabel('R/u (1)')
-plt.ylim([0, 1])
-plt.legend()
-
-
-
+plt.subplot(1,3,3)
+plt.title('EPSP height')
+#amplitudes = [pv+70*mV for pv in peak_volts]
+amplitudes = [peak_volts[i]-baseline_volts[i] for i in range(len(spike_times))]
+relative_peak_heights = [amp/amplitudes[0] for amp in amplitudes]
+peak_i = np.arange(1, len(relative_peak_heights)+1)
+plt.plot(peak_i, relative_peak_heights, '.')
+xlabel('Spike #')
+ylabel('Relative amplitude')
+xlim(1,10)
+ylim(0,15)
 plt.show()

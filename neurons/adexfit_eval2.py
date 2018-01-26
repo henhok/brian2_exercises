@@ -267,6 +267,33 @@ class AdexOptimizable(object):
                 else:
                     return 0
 
+    def prespikeWaveformArea(self, voltage_traces, spike_latencies):
+        """
+        Computes area of traces after stimulus start up to first spike.
+        Uses scipy.integrate.trapz for integration.
+
+        :param voltage_traces: list of dicts (see evaluateFitness)
+        :param spike_latencies: latencies from stimulus start to first spike
+        :return:
+        """
+        infinity=10e9
+        n_steps = self.target.n_steps
+        stim_start_loc = self.stim_start * 10   # sampling is at 0.1ms intervals & stim_start given in ms
+        end_loc = (np.array(spike_latencies)*10 + stim_start_loc).astype(int)
+
+        areas_btw_curves = []
+        for step_number in range(0, n_steps-1):
+            try:
+                flat_trace = 20*np.ones(end_loc[step_number] - stim_start_loc)
+                diff_trace = flat_trace - voltage_traces[step_number]['V'][stim_start_loc:end_loc[step_number][0]]
+                diff_trace = abs(diff_trace)
+                areas_btw_curves.append(trapz(diff_trace, dx=0.1))
+            except:
+                areas_btw_curves.append(infinity)
+
+        return areas_btw_curves
+
+
     def prespikeWaveformDifference(self, optimizable_traces, spike_latencies):
         """
         Computes area between traces after stimulus start up to integration_duration * ms.
@@ -297,7 +324,7 @@ class AdexOptimizable(object):
 
         return areas_btw_curves
 
-    def prestimulusWaveformDifference(self, optimizable_traces):
+    def prestimulusWaveformDifference(self, optimizable_traces, flat_target_trace=False):
         """
         Computes area between traces before stimulus start.
         Uses scipy.integrate.trapz for integration.
@@ -306,9 +333,14 @@ class AdexOptimizable(object):
         :return:
         """
         stim_start_loc = self.stim_start * 10   # sampling is at 0.1ms intervals & stim_start given in ms
-
         step_number = 0  # prestimulus behavior exactly the same in all experiments
-        diff_trace = np.array(self.target_traces[step_number]['V'][:stim_start_loc]) - np.array(optimizable_traces[step_number]['V'][:stim_start_loc])
+
+        if flat_target_trace is True:
+            target_voltages = 20 * np.ones(stim_start_loc)
+        else:
+            target_voltages = np.array(self.target_traces[step_number]['V'][:stim_start_loc])
+
+        diff_trace = target_voltages - np.array(optimizable_traces[step_number]['V'][:stim_start_loc])
         diff_trace = abs(diff_trace)
         area_btw_curves = trapz(diff_trace, dx=0.1)
 
@@ -411,7 +443,14 @@ class AdexOptimizable(object):
         feature_errors=[]
         for feature in self.efel_feature_names:
             abs_errors = [abs(individual_values[i][feature] - self.target_values[i][feature]) for i in range(0, n_steps - 1)]
-            avg_error = mean(abs_errors)
+
+            # // Update 2018-01-26 begins
+            acceptable_errors = [0.05*abs(self.target_values[i][feature]) for i in range(0, n_steps - 1)]
+            scaled_abs_errors = [abs_errors[i]/acceptable_errors[i] for i in range(0, n_steps - 1)]
+            avg_error = mean(scaled_abs_errors)
+            #avg_error = mean(abs_errors)
+            # // Update ends
+
             feature_errors.append(avg_error)
             if verbose is True:
                 print '---'
@@ -422,23 +461,57 @@ class AdexOptimizable(object):
         # 2.2. Custom features
         # Calculate errors in waveforms
         if 'prestim_waveform_diff' in self.custom_feature_names:
-            prestim_waveform_diff = self.prestimulusWaveformDifference(optimizable_traces)
-            feature_errors.append(prestim_waveform_diff)
+            prestim_waveform_opt = self.prestimulusWaveformDifference(optimizable_traces, flat_target_trace=True)
+            prestim_waveform_target = self.prestimulusWaveformDifference(self.target_traces, flat_target_trace=True)
+            prestim_acceptable = 0.05 * prestim_waveform_target
+            prestim_waveform_diff = abs(prestim_waveform_opt - prestim_waveform_target)
+            feature_errors.append(prestim_waveform_diff/prestim_acceptable)
             if verbose is True:
                 print '---'
-                print 'prestim_waveform_diff current: ' + str(prestim_waveform_diff)
+                print 'prestim_waveform current: ' + str(prestim_waveform_opt)
+                print 'prestim_waveform target: ' + str(prestim_waveform_target)
+                print 'prestim_waveform diff: ' + str(prestim_waveform_diff)
+
+            # Obsolete as of 2018-01-26
+            # prestim_waveform_diff = self.prestimulusWaveformDifference(optimizable_traces)
+            # feature_errors.append(prestim_waveform_diff)
+            # if verbose is True:
+            #     print '---'
+            #     print 'prestim_waveform_diff current: ' + str(prestim_waveform_diff)
+
 
         if 'prespike_waveform_diff' in self.custom_feature_names:
             assert 'inv_time_to_first_spike' in self.efel_feature_names, \
                 "Cannot compute prespike waveform difference unless spike latencies are extracted"
 
-            individual_latencies = [individual_values[i]['inv_time_to_first_spike'] for i in range(0, n_steps-1)]
-            areas_btw_traces = self.prespikeWaveformDifference(optimizable_traces, individual_latencies)
-            avg_error = mean(areas_btw_traces)
+            individual_latencies = [individual_values[i]['inv_time_to_first_spike'] for i in range(0, n_steps - 1)]
+            individual_areas = self.prespikeWaveformArea(optimizable_traces, individual_latencies)
+            target_latencies = [self.target_values[i]['inv_time_to_first_spike'] for i in range(0, n_steps - 1)]
+            target_areas = self.prespikeWaveformArea(self.target_traces, target_latencies)
+
+            abs_errors = [abs(individual_areas[i] - target_areas[i]) for i in
+                          range(0, n_steps - 1)]
+
+            acceptable_errors = [0.05 * abs(target_areas[i]) for i in range(0, n_steps - 1)]
+            scaled_abs_errors = [abs_errors[i] / acceptable_errors[i] for i in range(0, n_steps - 1)]
+            avg_error = mean(scaled_abs_errors)
+
             feature_errors.append(avg_error)
             if verbose is True:
                 print '---'
-                print 'prespike_waveform_diff current: ' + str(areas_btw_traces)
+                print 'Prespike waveform current: ' + str(individual_areas)
+                print 'Prespike waveform target:  ' + str(target_areas)
+                print 'Prespike waveform diff:    ' + str(abs_errors)
+
+
+            # Obsolete as of 2018-01-26
+            # individual_latencies = [individual_values[i]['inv_time_to_first_spike'] for i in range(0, n_steps-1)]
+            # areas_btw_traces = self.prespikeWaveformDifference(optimizable_traces, individual_latencies)
+            # avg_error = mean(areas_btw_traces)
+            # feature_errors.append(avg_error)
+            # if verbose is True:
+            #     print '---'
+            #     print 'prespike_waveform_diff current: ' + str(areas_btw_traces)
 
         if verbose is True:
             print 'Mean errors:'
@@ -455,15 +528,15 @@ class AdexOptimizable(object):
 
 if __name__ == '__main__':
     current_steps = [-0.084106, 0.2073756, 0.2246569, 0.2419382]
-    test_target = MarkramStepInjectionTraces('L4_PC_cADpyr230_3/hoc_recordings/', 'soma_voltage_step', current_steps)
-    passive_params = {'C': 1 * pF, 'gL': 1 * nS, 'EL': -72 * mV,
+    test_target = MarkramStepInjectionTraces('bbp_traces/L4_PC_cADpyr230_3/hoc_recordings/', 'soma_voltage_step', current_steps)
+    passive_params = {'C': 100 * pF, 'gL': 1 * nS, 'EL': -72 * mV,
                       'VT': -56 * mV, 'DeltaT': 4 * mV,
                       'Vcut': 20 * mV, 'refr_time': 4 * ms}
 
     adex_neuron = AdexOptimizable(passive_params, test_target,
                                   efel_feature_names=['Spikecount_stimint', 'inv_time_to_first_spike', 'inv_first_ISI', 'inv_last_ISI', 'min_voltage_between_spikes'],
                                   custom_feature_names=['prestim_waveform_diff', 'prespike_waveform_diff'],
-                                  dendritic_extent=2)
+                                  dendritic_extent=0)
 
     # adex_neuron = AdexOptimizable(passive_params, test_target,
     #                               ['Spikecount_stimint'])

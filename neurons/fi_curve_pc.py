@@ -7,20 +7,16 @@ refr_time = 4*ms
 
 
 # Parameters
-dendritic_extent = 4
+dendritic_extent = 1
 Cm = 1*uF*cm**-2
 gl = 4.2e-5*siemens*cm**-2
 Area_tot_pyram = 25000 * 0.75 * um**2
 Vcut = 20*mV
-EL = -73*mV
+EL = -70*mV
+V_res = -55*mV
+VT = -42*mV
+DeltaT = 2*mV
 
-# Adaptation parameters
-a = 0.469*nsiemens
-tau_w = 69.9*ms
-b = 315*pA
-V_res = -51.2*mV
-VT = -56*mV
-DeltaT = 4*mV
 
 # Dendritic parameters
 neuron_namespace = dict()
@@ -40,8 +36,7 @@ neuron_namespace['taum_soma'] = neuron_namespace['C'][1] / neuron_namespace['gL'
 
 # WITH ADAPTATION
 eq_template_soma = '''
-dvm/dt = ((gL*(EL-vm) + gL * DeltaT * exp((vm-VT) / DeltaT) -w +I_dendr + I) / C) : volt (unless refractory)
-dw/dt = (-a*(EL-vm)-w)/tau_w : amp
+dvm/dt = ((gL*(EL-vm) + gL * DeltaT * exp((vm-VT) / DeltaT) +I_dendr + I) / C) : volt (unless refractory)
 I : amp
 '''
 
@@ -104,21 +99,32 @@ neuron_equ += Equations('I_dendr = gapost*(vmpost-vmself) : amp',
 
 
 group = NeuronGroup(num_neurons, neuron_equ, threshold='vm > ' + repr(Vcut),
-                reset='vm = ' + repr(V_res) + '; w=w+' + repr(b),
+                reset='vm = ' + repr(V_res),
                 refractory=refr_time, method='euler')
 
 
 group.vm = EL
-group.I = '0.5*nA * i / num_neurons'
+
 
 monitor = SpikeMonitor(group)
+voltmon = StateMonitor(group, 'vm', record=True)
 
+group.I = 0*nA
+run(500*ms)
+
+group.I = '0.5*nA * i / num_neurons'
 run(duration)
 
-rheo_idx = min(np.where(monitor.count > 0)[0])
+rheo_idx = min(np.where(monitor.count > 2)[0])
 print group.I[rheo_idx]
 
-plot(group.I/nA, monitor.count / duration)
+plt.subplots(1,2)
+plt.subplot(1,2,1)
+plot(group.I/nA, monitor.count / duration, '.')
 xlabel('I (nA)')
 ylabel('Firing rate (sp/s)')
+
+plt.subplot(1,2,2)
+plot(voltmon.t/ms, voltmon.vm[rheo_idx]/mV)
+
 show()
