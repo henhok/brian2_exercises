@@ -3,7 +3,7 @@ from brian2 import *
 import matplotlib.pyplot as plt
 
 
-dendritic_extent = 1
+dendritic_extent = 3
 #test_current = 150*pA
 
 refr_time = 4*ms
@@ -21,8 +21,8 @@ EL = -70.11*mV
 # Adaptation parameters
 V_res = -55*mV
 tau_w = 200*ms
-a = 0.1*nsiemens
-b = 200*pA
+a = 5*nsiemens
+b = 0.1*pA
 
 # Dendritic parameters
 neuron_namespace = dict()
@@ -215,9 +215,9 @@ M = StateMonitor(G, ('vm', 'w'), record=True)
 M_spikes = SpikeMonitor(G)
 
 
-rheobase = compute_rheobase()
-print 'Rheobase: ' + str(rheobase)
-# rheobase=115*pA
+# rheobase = compute_rheobase()
+# print 'Rheobase: ' + str(rheobase)
+rheobase=115*pA
 print 'Rheobase: ' + str(rheobase)
 test_currents = np.array([0.95, 1.05, 1.2, 1.3, 1.4])
 print 'Stimuli (x rheobase): ' + str(test_currents*rheobase)
