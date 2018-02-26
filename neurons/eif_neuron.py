@@ -1,6 +1,6 @@
 from brian2 import *
 import matplotlib.pyplot as plt
-
+import equation_templates as eqt
 
 test_current = 72*pA
 
@@ -116,6 +116,10 @@ else:
      dv_basal/dt = (gL_basal*(EL-v_basal) + (1/R_apical)*(vm-v_basal))/C_basal : volt
      I: amp
      '''
+
+# x = eqt.EquationHelper(custom_strings={'I_TONIC': 'I', 'VM_NOISE': '', 'TONIC_EQ': 'I:amp'})
+# eq_soma = x.getMembraneEquation()
+
 
 # Main
 G = NeuronGroup(1,eq_soma, threshold='vm > '+repr(Vcut), reset = 'vm = '+repr(V_res), refractory = refr_time, method='euler')

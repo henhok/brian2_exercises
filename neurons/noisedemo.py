@@ -105,7 +105,7 @@ gemean = 0*nS
 gestd = 0*nS
 gimean = 0*nS
 gistd = 0*nS
-noise_sigma = 8*mV
+noise_sigma = 0*mV
 
 
 # Stochastic equation with fluctuating synaptic conductances (set ge/gi mean/std to zero if you don't want stochasticity)
@@ -147,10 +147,10 @@ M_spikes = SpikeMonitor(G)
 # S2.connect(i=0,j=0)
 
 ### Alternative Poisson
-# bg_rate = 4*Hz
-# exc_weight = 0.3*nS
-# inh_scaling = 4
-# Pe = PoissonInput(target=G, target_var='ge', N=3600, rate=bg_rate, weight=exc_weight)
+bg_rate = 0.2*Hz
+exc_weight = 0.3*nS
+inh_scaling = 4
+Pe = PoissonInput(target=G, target_var='ge', N=3600, rate=bg_rate, weight=exc_weight)
 # Pi = PoissonInput(G, 'gi', 500, bg_rate, inh_scaling*exc_weight)
 
 ### Timed spikes
@@ -161,7 +161,7 @@ M_spikes = SpikeMonitor(G)
 # S.connect(i=0, j=0)
 # run(1000*ms)
 
-run(10000 * ms)
+run(5000 * ms)
 
 
 plt.subplots(1,3)

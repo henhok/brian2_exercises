@@ -1,9 +1,10 @@
 from brian2 import *
 import matplotlib.pyplot as plt
+import equation_templates as eqt
 
 
 dendritic_extent = 1
-test_current = 300*pA
+tonic_current = 130*pA
 
 refr_time = 4*ms
 defaultclock_dt = 0.1*ms  # Just for visualization! Changing this doesn't change the clock.
@@ -13,10 +14,10 @@ DeltaT = 2*mV
 Cm = 1*uF*cm**-2
 gl = 4.2e-5*siemens*cm**-2
 Area_tot_pyram = 25000 * 0.75 * um**2
-VT = -41.61*mV
-Vcut = -25*mV
+VT = -42*mV
+Vcut = +20*mV
 V_res = -55*mV
-EL = -70.11*mV
+EL = -70*mV
 
 # Dendritic parameters
 neuron_namespace = dict()
@@ -35,29 +36,15 @@ neuron_namespace['gL'] = fract_areas[dendritic_extent] * \
 neuron_namespace['taum_soma'] = neuron_namespace['C'][1] / neuron_namespace['gL'][1]
 
 
-# OBSOLETE - Code for simplified model
-# fract_area_fixed = fract_areas[dendritic_extent]
-#
-# area_basal = 0.2 * area_total
-# area_apical = 0*um**2
-# for i in range(0, dendritic_extent+1):
-#     area_apical += fract_area_fixed[2+i] * area_total
-#
-# R_basal = Ra[0]
-# R_apical = Ra[-1]  # last compartment always with Ra[-1] resistance
-# for i in range(0, dendritic_extent):
-#     R_apical += Ra[i+1]
-#
-# gL_basal = gl*area_basal
-# gL_apical = gl*area_apical
-# C_basal = Cm*area_basal*2  # x2 to account for spine area
-# C_apical = Cm*area_apical*2  # x2 to account for spine area
 
 # Synaptic parameters; redundant in this tool as there are no synaptic conductances
 tau_e = 3*ms  # Depends on neuron type
 tau_i = 8*ms  # Depends on neuron type
+tau_e_alpha = 3*ms  # Depends on neuron type
+tau_i_alpha = 8*ms  # Depends on neuron type
 Ee = 0*mV
 Ei = -75*mV
+noise_sigma=0*mV
 #tau_m = C/gL
 
 
@@ -67,21 +54,48 @@ Ei = -75*mV
 
 ### BEGIN -- Copy-paste from physiology_reference
 
-eq_template_soma = '''
-dvm/dt = ((gL*(EL-vm) + gealpha * (Ee-vm) + gialpha * (Ei-vm) + gL * DeltaT * exp((vm-VT) / DeltaT) +I_dendr + I_injected*(1-exp(-t/(50*msecond)))) / C) : volt (unless refractory)
-dge/dt = -ge/tau_e : siemens
-dgealpha/dt = (ge-gealpha)/tau_e : siemens
-dgi/dt = -gi/tau_i : siemens
-dgialpha/dt = (gi-gialpha)/tau_i : siemens
-'''
-#: The template for the dendritic equations used in multi compartmental neurons, the inside values could be replaced later using "Equation" function in brian2.
-eq_template_dend = '''
-dvm/dt = (gL*(EL-vm) + gealpha * (Ee-vm) + gialpha * (Ei-vm) +I_dendr) / C : volt
-dge/dt = -ge/tau_e : siemens
-dgealpha/dt = (ge-gealpha)/tau_e : siemens
-dgi/dt = -gi/tau_i : siemens
-dgialpha/dt = (gi-gialpha)/tau_i : siemens
-'''
+# eq_template_soma = '''
+# dvm/dt = ((gL*(EL-vm) + gealpha * (Ee-vm) + gialpha * (Ei-vm) + gL * DeltaT * exp((vm-VT) / DeltaT) +I_dendr + tonic_current*(1-exp(-t/(50*msecond)))) / C) : volt (unless refractory)
+# dge/dt = -ge/tau_e : siemens
+# dgealpha/dt = (ge-gealpha)/tau_e : siemens
+# dgi/dt = -gi/tau_i : siemens
+# dgialpha/dt = (gi-gialpha)/tau_i : siemens
+# '''
+# #: The template for the dendritic equations used in multi compartmental neurons, the inside values could be replaced later using "Equation" function in brian2.
+# eq_template_dend = '''
+# dvm/dt = (gL*(EL-vm) + gealpha * (Ee-vm) + gialpha * (Ei-vm) +I_dendr) / C : volt
+# dge/dt = -ge/tau_e : siemens
+# dgealpha/dt = (ge-gealpha)/tau_e : siemens
+# dgi/dt = -gi/tau_i : siemens
+# dgialpha/dt = (gi-gialpha)/tau_i : siemens
+# '''
+
+# Copied during debug (and does not work)
+# eq_template_soma = '''
+#   dvm/dt = ((gL*(EL-vm) + gealpha * (Ee-vm) + gialpha * (Ei-vm) + gL * DeltaT * exp((vm-VT) / DeltaT) + I_dendr + tonic_current*(1-exp(-t/(50*msecond)))) / C) : volt (unless refractory)
+#   dge/dt = -ge/tau_e : siemens
+#   dgealpha/dt = (ge-gealpha)/tau_e : siemens
+#   dgi/dt = -gi/tau_i : siemens
+#   dgialpha/dt = (gi-gialpha)/tau_i : siemens
+# '''
+#
+# eq_template_dend = '''
+# dvm/dt = ((gL*(EL-vm) + I_dendr + gealpha * (Ee - vm) + gialpha * (Ei - vm) )/C)  : volt
+# dge/dt = -ge/tau_e_alpha : siemens
+# dgealpha/dt = (ge-gealpha)/tau_e_alpha : siemens
+# dgi/dt = -gi/tau_i_alpha : siemens
+# dgialpha/dt = (gi-gialpha)/tau_i_alpha : siemens
+# '''
+
+
+# FROM TEMPLATES
+eq_template_soma = str(eqt.EquationHelper(neuron_model='EIF', is_pyramidal=True,
+                                      compartment='soma', exc_model='E_ALPHA',
+                                      inh_model='I_ALPHA').getMembraneEquation(return_string=True))
+eq_template_dend = str(eqt.EquationHelper(neuron_model='EIF', is_pyramidal=True,
+                                      compartment='dend', exc_model='E_ALPHA',
+                                      inh_model='I_ALPHA').getMembraneEquation(return_string=True))
+
 
 
 neuron_equ = Equations(eq_template_dend, vm="vm_basal", ge="ge_basal",
@@ -94,7 +108,7 @@ neuron_equ += Equations(eq_template_soma, gL=neuron_namespace['gL'][1],
                                             ge='ge_soma', geX='geX_soma', gi='gi_soma', gealpha='gealpha_soma',
                                             gealphaX='gealphaX_soma',
                                             gialpha='gialpha_soma', C=neuron_namespace['C'][1],
-                                            I_dendr='Idendr_soma', I_injected=test_current,
+                                            I_dendr='Idendr_soma',
                                             taum_soma=neuron_namespace['taum_soma'])
 for _ii in range(dendritic_extent + 1):  # extra dendritic compartment in the same level of soma
     neuron_equ += Equations(eq_template_dend, vm="vm_a%d" % _ii,
@@ -137,7 +151,8 @@ neuron_equ += Equations('I_dendr = gapost*(vmpost-vmself) : amp',
 
 # Main
 G = NeuronGroup(1, neuron_equ, threshold='vm > '+repr(Vcut), reset='vm = '+repr(V_res), refractory=refr_time, method='euler')
-G.vm = EL
+G.vm_basal = EL
+G.vm_a0 = EL
 
 
 # M = StateMonitor(G, ('vm','ge','gi'), record=True)

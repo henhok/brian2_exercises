@@ -266,7 +266,7 @@ def run_coba_stp(model='hh', coba_runtime=1.0 * second, coba_scale=1, k=1, repor
 
 if __name__ == '__main__':
 
-    run_coba(model='hh', coba_runtime=1 * second, show_traces=True)
+    run_coba(model='eif', coba_runtime=1 * second, show_traces=True)
 
     # k_list = [0.5, 1.0, 1.5]
     # k_total = len(k_list)
