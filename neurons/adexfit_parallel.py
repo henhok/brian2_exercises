@@ -42,11 +42,12 @@ import adexfit_eval2 as adexeval
 
 # Initialize the neuron to be fitted
 
-output_csv_file = 'L23PC'
-current_steps = [-0.0726, 0.157, 0.170, 0.183]
-test_target = adexeval.MarkramStepInjectionTraces('bbp_traces/L23_PC_cADpyr229_3/hoc_recordings/',
+output_csv_file = 'New_L4SS'
+current_steps = [-0.052612,	0.1413048,	0.1530802,	0.1648556]
+
+test_target = adexeval.MarkramStepInjectionTraces('bbp_traces/L4_SS_cADpyr230_1/hoc_recordings/',
                                                   'soma_voltage_step', current_steps)
-passive_params = {'C': 135 * pF, 'gL': 5.5 * nS, 'EL': -73 * mV,
+passive_params = {'C': 110 * pF, 'gL': 3.1 * nS, 'EL': -70 * mV,
                   'VT': -42 * mV, 'DeltaT': 4 * mV,
                   'Vcut': 20 * mV, 'refr_time': 4 * ms}
 dendritic_extent = 0
@@ -89,8 +90,8 @@ if IND_SIZE == 6:  # if also VT, DeltaT are included
 bounds = np.array(bounds)
 
 # Set optimization parameters here
-NGEN = 15
-POP_SIZE = 100
+NGEN = 20
+POP_SIZE = 1000
 OFFSPRING_SIZE = POP_SIZE
 CXPB = 0.7   # crossover fraction
 MUTPB = 0.3  # mutation frequency
@@ -206,7 +207,7 @@ if __name__ == '__main__':
     # Save aggregate data on each generation for immediate viewing
     stats_gen = tools.Statistics(key=lambda ind: ind.fitness.values)
 
-    stats_gen.register("avg", np.min, axis=0)
+    stats_gen.register("avg", np.mean, axis=0)
     stats_gen.register("std", np.std, axis=0)
     stats_gen.register("min", np.min, axis=0)
     stats_gen.register("max", np.max, axis=0)

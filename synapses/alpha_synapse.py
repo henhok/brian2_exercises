@@ -29,7 +29,8 @@ t_peak = tau_e_alpha
 # b = tau_e_decay/tau_e_rise
 # K = exp(-tau_e_rise/a * log(b)) - exp(-tau_e_decay/a * log(b))
 
-K=exp(1)
+K=1
+#K=exp(1)
 print str(K)
 
 eqs_eif_biexp = '''

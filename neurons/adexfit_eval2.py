@@ -476,6 +476,8 @@ class AdexOptimizable(object):
         if verbose is True:
             print 'Current AdEx params (a, tau_w, b, V_res): ' + str(individual)
 
+        failed_individual_costs = np.ones(len(self.efel_feature_names) + len(self.custom_feature_names))*500
+
         # 1. CURRENT INJECTIONS
         # 1.1. Prepare for running current injections
         # Better variable names for sake of clarity
@@ -486,6 +488,9 @@ class AdexOptimizable(object):
             a, tau_w, b, V_res, VT, DeltaT = individual
             neupar['VT'] = VT*mV
             neupar['DeltaT'] = DeltaT*mV
+
+            if V_res >= VT:  # we don't resetting above threshold!
+                return failed_individual_costs
 
         n_steps = self.target.n_steps
         current_steps = self.target.current_steps
@@ -519,6 +524,7 @@ class AdexOptimizable(object):
                 setattr(G, "vm_a%d" % _ii, neupar['EL'])
 
         M = StateMonitor(G, ('vm'), record=True)
+        spikes = SpikeMonitor(G)
 
         # 1.2. Run the current injections
         # Hyperpolarizing current
@@ -559,6 +565,23 @@ class AdexOptimizable(object):
         for step in range(0, n_steps - 1):
             individual_values[step] = {k: self._listFirst(k, v) for k, v in individual_values[step].items()}
             self.target_values[step] = {k: self._listFirst(k, v) for k, v in self.target_values[step].items()}
+
+        # eFel fails to count spikes with some AdEx parameters, so safer to use Brian2's spikemonitor
+        if 'Spikecount_stimint' in self.efel_feature_names:
+            for step in range(0, n_steps-1):
+                individual_values[step]['Spikecount_stimint'] = spikes.count[step+1]
+
+        if 'min_voltage_between_spikes' in self.efel_feature_names:
+            for step in range(0, n_steps-1):
+                step_spikes = spikes.t[spikes.i == step+1]
+                try:
+                    first_spike = int(step_spikes[0]/ms*10)  # bc vm monitor indexed with ints at 0.1ms interval
+                    second_spike = int(step_spikes[1]/ms*10)
+                    min_volt = min(M.vm[step+1][first_spike:second_spike])/mV
+                except:
+                    min_volt = -100
+
+                individual_values[step]['min_voltage_between_spikes'] = min_volt
 
         # Calculate errors in extracted features by averaging over all current steps
         feature_errors=[]
@@ -667,10 +690,11 @@ class AdexOptimizable(object):
 
 
 if __name__ == '__main__':
-    current_steps = [-0.0726, 0.157, 0.170, 0.183]
-    test_target = MarkramStepInjectionTraces('bbp_traces/L23_PC_cADpyr229_3/hoc_recordings/',
+    current_steps = [-0.052612, 0.1413048, 0.1530802, 0.1648556]
+
+    test_target = MarkramStepInjectionTraces('bbp_traces/L4_SS_cADpyr230_1/hoc_recordings/',
                                                       'soma_voltage_step', current_steps)
-    passive_params = {'C': 135 * pF, 'gL': 5.5 * nS, 'EL': -73 * mV,
+    passive_params = {'C': 110 * pF, 'gL': 3.1 * nS, 'EL': -70 * mV,
                       'VT': -42 * mV, 'DeltaT': 4 * mV,
                       'Vcut': 20 * mV, 'refr_time': 4 * ms}
 
@@ -682,7 +706,7 @@ if __name__ == '__main__':
     # adex_neuron = AdexOptimizable(passive_params, test_target,
     #                               ['Spikecount_stimint'])
 
-    init_guess = [1.1007516741,	261.116330897,	101.458455463,	-63.0818780812,	-61.8265113847,	2.9930048131]
+    init_guess = [0.9748883755,	281.47013649,	35.8342068769,	-68.1128513402,	-50.0230825328,	2.1430450182]
 
 
 

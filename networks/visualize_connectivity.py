@@ -1,3 +1,5 @@
+# Visualize neural network connectivity using NetworkX and PyGraphviz
+
 from __future__ import division
 from brian2 import *
 import pandas as pd
@@ -7,6 +9,8 @@ import matplotlib
 import networkx as nx
 import bz2
 import cPickle as pickle
+import os
+import pygraphviz as gv
 
 sns.set_style('whitegrid')
 matplotlib.rcParams['pdf.fonttype'] = 42
@@ -33,6 +37,7 @@ class ConnectivityData(object):
 
     def __init__(self, datafile, keys_to_exclude=['relay_vpm']):
         not_connection_keys = ['Full path', 'positions_all']
+        self.datafilepath = datafile
 
         with bz2.BZ2File(datafile, 'rb') as fi:
             data = pickle.load(fi)
@@ -83,6 +88,28 @@ class ConnectivityData(object):
 
         return final_df
 
+    def describe(self, verbose=True):
+        N_cells = sum(ConnectivityData.cell_counts.values())
+        N_synapses_total = int(sum(self.connections_df.n_synapses))
+        mean_syns_per_neuron = round(N_synapses_total/N_cells, 5)
+
+        # Count pathways; assuming that pathways to pyramidal cells
+        # 1) target only one compartment or 2) target both basal and a0 compartments
+        N_pathways = len(self.connections_df[self.connections_df.target_compartment != 'basal'])
+
+        connection_stats = {
+            'filename': os.path.basename(self.datafilepath),
+            'N_cells': N_cells,
+            'N_synapses_total': N_synapses_total,
+            'mean_syns_per_neuron': mean_syns_per_neuron,
+            'N_pathways': N_pathways
+        }
+
+        if verbose is True:
+            print 'Synapses %d\t\tSynapses per neuron: %d\t\tPathways: %d' % (N_synapses_total, mean_syns_per_neuron, N_pathways)
+
+        return connection_stats
+
     def plotNetwork(self, min_synapses=200):
         # Node size = size of group
         # Edge width = n_synapses_per_target
@@ -101,7 +128,38 @@ class ConnectivityData(object):
     #     for k,v in self.connectivity_data.items():
     #         print '%s\t\t\t\t %d\t\t\t\t %d' % (str(k), v['data'].getnnz(), v['n'])
 
+    def writeDot(self):
+        c = self.connections_df
+        c_edges = [(c.iloc[i].presynaptic_group, c.iloc[i].postsynaptic_group) for i in range(len(c))]
+
+        graph = nx.MultiDiGraph(c_edges)
+        agraph = nx.nx_agraph.to_agraph(graph)
+        agraph.write('baabaa.dot')
+
+def AnalyzeNetworks(connectivity_path, filename_prefix):
+    connectivity_files = [connfile for connfile in os.listdir(connectivity_path)
+                                 if filename_prefix in connfile]
+    N_microcircuits = len(connectivity_files)
+    print 'Analyzing %d microcircuits...' % N_microcircuits
+
+    allstats = []
+    for i in range(N_microcircuits):
+        print connectivity_files[i]
+        current_microcircuit = ConnectivityData(connectivity_path + connectivity_files[i]).describe()
+        allstats.append(current_microcircuit)
+
+    stats_df = pd.DataFrame(allstats)
+    stats_df.to_csv('microcircuit_diversity.csv')
+
+def plotdot(dotfile_path):
+    graph = nx.nx_agraph.read_dot(dotfile_path)
+    graph.draw('baabaa.png')
+
 
 if __name__ == '__main__':
-    fixedconn = ConnectivityData('fixed_connections.bz2')
-    fixedconn.plotNetwork(min_synapses=100)
+    # fixedconn = ConnectivityData('fixed_connections.bz2')
+    # fixedconn = ConnectivityData('/opt3/tmp/01_cxs_rev1/27_fixed_connections_20180102_16021029_default_config_Cpp_1500ms.bz2')
+    #fixedconn.writeDot()
+    plotdot('baabaa.dot')
+    # fixedconn.plotNetwork(min_synapses=100)
+    # AnalyzeNetworks('/opt3/tmp/DataRepo/2018-01_Microcircuit_diversity/', '27_fixed_connections')

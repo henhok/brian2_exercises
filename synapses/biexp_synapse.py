@@ -17,8 +17,8 @@ V_res = -70*mV
 EL = -70*mV
 
 # Synaptic parameters; redundant in this tool as there are no synaptic conductances
-tau_e_rise = 2*ms
-tau_e_decay = 200*ms
+tau_e_rise = 0.2*ms
+tau_e_decay = 1.73*ms
 Ee = 0*mV
 Ei = -75*mV
 tau_m = C/gL
