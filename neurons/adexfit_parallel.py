@@ -42,15 +42,15 @@ import adexfit_eval2 as adexeval
 
 # Initialize the neuron to be fitted
 
-output_csv_file = 'New_L4SS'
-current_steps = [-0.052612,	0.1413048,	0.1530802,	0.1648556]
+output_csv_file = 'New_PC'
+current_steps = [-0.247559, 0.55425, 0.6004375, 0.646625]
 
-test_target = adexeval.MarkramStepInjectionTraces('bbp_traces/L4_SS_cADpyr230_1/hoc_recordings/',
+test_target = adexeval.MarkramStepInjectionTraces('bbp_traces/L5_TTPC1_cADpyr232_4/hoc_recordings/',
                                                   'soma_voltage_step', current_steps)
-passive_params = {'C': 110 * pF, 'gL': 3.1 * nS, 'EL': -70 * mV,
+passive_params = {'C': 92 * pF, 'gL': 4.3 * nS, 'EL': -60 * mV,
                   'VT': -42 * mV, 'DeltaT': 4 * mV,
                   'Vcut': 20 * mV, 'refr_time': 4 * ms}
-dendritic_extent = 0
+dendritic_extent = 3
 
 efel_features = ['Spikecount_stimint', 'inv_time_to_first_spike', 'inv_first_ISI', 'inv_last_ISI', 'min_voltage_between_spikes']
 custom_features = ['prestim_waveform_diff', 'prespike_waveform_diff']
@@ -183,7 +183,8 @@ if __name__ == '__main__':
 
     random.seed()
 
-    N_CPU = int(mp.cpu_count()*0.80)
+    # N_CPU = int(mp.cpu_count()*0.80)
+    N_CPU = 10
     pool = mp.Pool(processes=N_CPU)
     toolbox.register("map", pool.map)
 

@@ -113,13 +113,13 @@ class ConnectivityData(object):
     def plotNetwork(self, min_synapses=200):
         # Node size = size of group
         # Edge width = n_synapses_per_target
-        c = self.connections_df[self.connections_df.n_syns_per_target >= min_synapses]
+        c = self.connections_df[self.connections_df.n_synapses >= min_synapses]
         c_edges = [(c.iloc[i].presynaptic_group, c.iloc[i].postsynaptic_group) for i in range(len(c))]
 
         graph = nx.MultiDiGraph(c_edges)
         agraph = nx.nx_agraph.to_agraph(graph)
 
-        agraph.draw('gugu.png', prog='circo')
+        agraph.draw('pathways.png', prog='circo')
         #nx.draw_circular(agraph, with_labels=True)
         #plt.show()
 
@@ -157,9 +157,11 @@ def plotdot(dotfile_path):
 
 
 if __name__ == '__main__':
-    # fixedconn = ConnectivityData('fixed_connections.bz2')
+    fixedconn = ConnectivityData('fixed_connections.bz2')
+    fixedconn.plotNetwork(min_synapses=360000)
+
     # fixedconn = ConnectivityData('/opt3/tmp/01_cxs_rev1/27_fixed_connections_20180102_16021029_default_config_Cpp_1500ms.bz2')
     #fixedconn.writeDot()
-    plotdot('baabaa.dot')
+    # plotdot('baabaa.dot')
     # fixedconn.plotNetwork(min_synapses=100)
     # AnalyzeNetworks('/opt3/tmp/DataRepo/2018-01_Microcircuit_diversity/', '27_fixed_connections')

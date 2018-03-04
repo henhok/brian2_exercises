@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 test_current = 72*pA
 
 refr_time = 4*ms
-defaultclock_dt = 0.1*ms  # Just for visualization! Changing this doesn't change the clock.
+defaultclock.dt = 0.01*ms  # Note that for small rise times conductance overshoots unless dt is small
 DeltaT = 2*mV
 
 # SS cell (alternative; params wanted within physiological range)
@@ -25,6 +25,8 @@ tau_m = C/gL
 
 t_peak = (tau_e_decay*tau_e_rise)/(tau_e_decay - tau_e_rise)*log(tau_e_decay/tau_e_rise)
 # K = 1/exp(-t_peak/tau_e_decay)
+
+print t_peak
 
 eqs_eif_biexp = '''
 dvm/dt = (gL*(EL-vm) + gealpha*(Ee-vm) + gL*DeltaT*exp((vm-VT) / DeltaT)) / C : volt (unless refractory)
