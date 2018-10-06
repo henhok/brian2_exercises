@@ -690,23 +690,23 @@ class AdexOptimizable(object):
 
 
 if __name__ == '__main__':
-    current_steps = [-0.062866, 0.3112968, 0.3372382, 0.3631796]
+    current_steps = [-0.247559, 0.55425, 0.6004375, 0.646625]
 
-    test_target = MarkramStepInjectionTraces('bbp_traces/L4_LBC_dNAC222_5/hoc_recordings/',
+    test_target = MarkramStepInjectionTraces('bbp_traces/L5_TTPC1_cADpyr232_4/hoc_recordings/',
                                                       'soma_voltage_step', current_steps)
-    passive_params = {'C': 100 * pF, 'gL': 10 * nS, 'EL': -68 * mV,
+    passive_params = {'C': 110 * pF, 'gL': 3.1 * nS, 'EL': -70 * mV,
                       'VT': -42 * mV, 'DeltaT': 4 * mV,
                       'Vcut': 20 * mV, 'refr_time': 4 * ms}
 
     adex_neuron = AdexOptimizable(passive_params, test_target,
                                   efel_feature_names=['Spikecount_stimint', 'inv_time_to_first_spike', 'inv_first_ISI', 'inv_last_ISI', 'min_voltage_between_spikes'],
                                   custom_feature_names=['prestim_waveform_diff', 'prespike_waveform_diff'],
-                                  dendritic_extent=0)
+                                  dendritic_extent=3)
 
     # adex_neuron = AdexOptimizable(passive_params, test_target,
     #                               ['Spikecount_stimint'])
 
-    init_guess = [0.9883698082,	11.0005651203,	292.442460032,	-69.9727539543,	-52.7320848789,	3.7935183421]
+    init_guess = [9.3, 208, 311, -65, -55, 1.47]
 
 
 

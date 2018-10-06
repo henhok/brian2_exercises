@@ -19,18 +19,19 @@ EL = -70*mV
 rheobase = 72*pA
 
 # Synaptic parameters; redundant in this tool as there are no synaptic conductances
-tau_e_rise = 0.2*ms
-tau_e_decay = 1.73*ms
-tau_nmda_rise = 0.3*ms
-tau_nmda_decay = 43*ms
+tau_e_rise = 0.1*ms
+tau_e_decay = 8.3*ms
+tau_nmda_rise = 3.0*ms
+tau_nmda_decay = 260*ms
 Ee = 0*mV
 Ei = -75*mV
+Ee = Ei
 tau_m = C/gL
 
-nmda_scaling = 0.4
+nmda_scaling = 0.2
 K_alpha = 1
-tau_e_alpha = 3*ms
-tau_e = 3*ms
+tau_e_alpha = 8.3*ms
+tau_e = 8.3*ms
 
 t_peak = (tau_e_decay*tau_e_rise)/(tau_e_decay - tau_e_rise)*log(tau_e_decay/tau_e_rise)
 # K = 1/exp(-t_peak/tau_e_decay)
@@ -44,8 +45,7 @@ dgealpha1/dt = (ge-gealpha1)/tau_e_rise : siemens
 gealpha = (tau_e_decay/tau_e_rise)**(tau_e_rise/(tau_e_decay-tau_e_rise)) * gealpha1 : siemens
 dgnmda/dt = -gnmda/tau_nmda_decay : siemens
 dgnmda_alpha1/dt = (gnmda-gnmda_alpha1)/tau_nmda_rise : siemens
-gnmda_alpha = nmda_scaling * gnmda_alpha1 * (tau_nmda_decay/tau_nmda_rise)**(tau_nmda_rise/(tau_nmda_decay-tau_nmda_rise)) * B : siemens
-B = 1/(1+exp(-62*(vm/volt))*(1/3.57)) : 1
+gnmda_alpha = nmda_scaling * gnmda_alpha1 * (tau_nmda_decay/tau_nmda_rise)**(tau_nmda_rise/(tau_nmda_decay-tau_nmda_rise)) : siemens
 I : amp
 '''
 

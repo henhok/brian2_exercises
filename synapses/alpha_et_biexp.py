@@ -6,7 +6,7 @@ sns.set_style('whitegrid')
 test_current = 72*pA
 
 refr_time = 4*ms
-defaultclock.dt = 0.01*ms
+defaultclock.dt = 0.1*ms
 DeltaT = 2*mV
 
 # SS cell (alternative; params wanted within physiological range)
@@ -19,13 +19,13 @@ EL = -70*mV
 
 # Synaptic parameters; redundant in this tool as there are no synaptic conductances
 tau_e_rise = 0.2*ms
-tau_e_decay = 8.3*ms
-tau_e = 8.3*ms
-tau_e_alpha = 8.3*ms
+tau_e_decay = 1.7*ms
+tau_e = 1.7*ms
+tau_e_alpha = 1.5*ms
 Ee = 0*mV
 Ei = -75*mV
 tau_m = C/gL
-K_alpha = 1
+K_alpha = exp(1)
 
 syn_weight = 1*nS
 

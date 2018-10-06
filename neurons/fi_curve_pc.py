@@ -1,25 +1,33 @@
 from brian2 import *
 
-num_neurons = 500
+num_neurons = 1000
 duration = 2*second
 
 refr_time = 4*ms
 
 
 # Parameters
-dendritic_extent = 1
+dendritic_extent = 4
 Cm = 1*uF*cm**-2
 gl = 4.2e-5*siemens*cm**-2
+
 Area_tot_pyram = 25000 * 0.75 * um**2
+EL = -72.02*mV
+V_res = -64.76*mV
+VT = -53.76*mV
+# Area_tot_pyram = 25000 * 0.75 * um**2
+# EL = -70*mV
+# V_res = -55*mV
+# VT = -42*mV
+
 Vcut = 20*mV
-EL = -70*mV
-V_res = -55*mV
-VT = -42*mV
 DeltaT = 2*mV
 
 
 # Dendritic parameters
 neuron_namespace = dict()
+
+#fract_areas = {2: array([0.354, 0.047, 0.599, 0.01, 0.01])}
 
 fract_areas = {1: array([0.2,  0.03,  0.15,  0.2]),
                 2: array([0.2,  0.03,  0.15,  0.15,  0.2]),
@@ -27,6 +35,7 @@ fract_areas = {1: array([0.2,  0.03,  0.15,  0.2]),
                 4: array([0.2,  0.03,  0.15,  0.15,  0.09,  0.15,  0.2])}
 
 neuron_namespace['Ra'] = [100, 80, 150, 150, 200] * Mohm
+#neuron_namespace['Ra'] = [100, 100, 100, 100, 100] * Mohm
 
 neuron_namespace['C'] = fract_areas[dendritic_extent] * \
                              Cm * Area_tot_pyram * 2
@@ -104,6 +113,7 @@ group = NeuronGroup(num_neurons, neuron_equ, threshold='vm > ' + repr(Vcut),
 
 
 group.vm = EL
+#print group.Idendr_soma
 
 
 monitor = SpikeMonitor(group)
@@ -115,7 +125,14 @@ run(500*ms)
 group.I = '0.5*nA * i / num_neurons'
 run(duration)
 
-rheo_idx = min(np.where(monitor.count > 2)[0])
+# PC neurons have their I_dendr initialized weirdly and thus create spikes in the beginning
+# Thus this solution does not work
+# rheo_idx = min(np.where(monitor.count > 2)[0])
+# print group.I[rheo_idx]
+
+spikes_after_init = np.where(monitor.t > 500*ms)[0]
+spikers_idx = monitor.i[spikes_after_init]
+rheo_idx = min(spikers_idx)
 print group.I[rheo_idx]
 
 plt.subplots(1,2)

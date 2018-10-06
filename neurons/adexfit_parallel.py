@@ -42,15 +42,15 @@ import adexfit_eval2 as adexeval
 
 # Initialize the neuron to be fitted
 
-output_csv_file = 'New_PC'
-current_steps = [-0.247559, 0.55425, 0.6004375, 0.646625]
+output_csv_file = 'New_V2_SS'
+current_steps = [-0.052612, 0.1413048, 0.1530802, 0.1648556]
 
-test_target = adexeval.MarkramStepInjectionTraces('bbp_traces/L5_TTPC1_cADpyr232_4/hoc_recordings/',
-                                                  'soma_voltage_step', current_steps)
-passive_params = {'C': 92 * pF, 'gL': 4.3 * nS, 'EL': -60 * mV,
+test_target = adexeval.MarkramStepInjectionTraces('bbp_traces/L4_SS_cADpyr230_1/hoc_recordings/',
+                                         'soma_voltage_step', current_steps)
+passive_params = {'C': 110 * pF, 'gL': 3.1 * nS, 'EL': -70 * mV,
                   'VT': -42 * mV, 'DeltaT': 4 * mV,
                   'Vcut': 20 * mV, 'refr_time': 4 * ms}
-dendritic_extent = 3
+dendritic_extent = 0
 
 efel_features = ['Spikecount_stimint', 'inv_time_to_first_spike', 'inv_first_ISI', 'inv_last_ISI', 'min_voltage_between_spikes']
 custom_features = ['prestim_waveform_diff', 'prespike_waveform_diff']
@@ -77,9 +77,9 @@ assert IND_SIZE in [4, 6], "IND_SIZE must be either 4 or 6!"
 
 # Default IND_SIZE = 4 (a, tau_w, b, V_res)
 adex_param_names = ['a', 'tau_w', 'b', 'V_res']
-bounds = [[-10, 10],
-          [0, 300],
-          [0, 400],
+bounds = [[0, 5],
+          [5, 100],
+          [10, 300],
           [-70, -60]]
 
 if IND_SIZE == 6:  # if also VT, DeltaT are included
@@ -90,7 +90,7 @@ if IND_SIZE == 6:  # if also VT, DeltaT are included
 bounds = np.array(bounds)
 
 # Set optimization parameters here
-NGEN = 20
+NGEN = 10
 POP_SIZE = 1000
 OFFSPRING_SIZE = POP_SIZE
 CXPB = 0.7   # crossover fraction
@@ -183,8 +183,8 @@ if __name__ == '__main__':
 
     random.seed()
 
-    # N_CPU = int(mp.cpu_count()*0.80)
-    N_CPU = 10
+    N_CPU = int(mp.cpu_count()*0.80)
+    # N_CPU = 10
     pool = mp.Pool(processes=N_CPU)
     toolbox.register("map", pool.map)
 

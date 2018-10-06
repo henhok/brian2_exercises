@@ -110,11 +110,19 @@ class ConnectivityData(object):
 
         return connection_stats
 
-    def plotNetwork(self, min_synapses=200):
+    def plotNetwork(self, min_synapses=200, verbose=True):
         # Node size = size of group
         # Edge width = n_synapses_per_target
+
         c = self.connections_df[self.connections_df.n_synapses >= min_synapses]
         c_edges = [(c.iloc[i].presynaptic_group, c.iloc[i].postsynaptic_group) for i in range(len(c))]
+
+        if verbose is True:
+            n_synapses_total = int(sum(self.connections_df.n_synapses))
+            for i in range(len(c)):
+                print '%s -> %s: %d synapses (%.2f)' % (c.iloc[i].presynaptic_group, c.iloc[i].postsynaptic_group, c.iloc[i].n_synapses, 100*c.iloc[i].n_synapses/n_synapses_total)
+
+            print 'Total %d connections with minimum %d synapses' % (len(c), min_synapses)
 
         graph = nx.MultiDiGraph(c_edges)
         agraph = nx.nx_agraph.to_agraph(graph)
@@ -158,7 +166,8 @@ def plotdot(dotfile_path):
 
 if __name__ == '__main__':
     fixedconn = ConnectivityData('fixed_connections.bz2')
-    fixedconn.plotNetwork(min_synapses=360000)
+    # fixedconn.connections_df.to_csv('fixed_conn.csv')
+    fixedconn.plotNetwork(min_synapses=180000)
 
     # fixedconn = ConnectivityData('/opt3/tmp/01_cxs_rev1/27_fixed_connections_20180102_16021029_default_config_Cpp_1500ms.bz2')
     #fixedconn.writeDot()
