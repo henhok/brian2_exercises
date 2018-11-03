@@ -135,7 +135,7 @@ def simulatePC(dendritic_extent, Area_tot_pyram, EL, V_res, VT, fract_areas, sho
     spikes_after_init = np.where(monitor.t > 500*ms)[0]
     spikers_idx = monitor.i[spikes_after_init]
     rheo_idx = min(spikers_idx)
-    print group.I[rheo_idx]
+
 
     if show_plot is True:
         plt.subplots(1,2)
@@ -149,9 +149,12 @@ def simulatePC(dendritic_extent, Area_tot_pyram, EL, V_res, VT, fract_areas, sho
 
         show()
 
+    return group.I[rheo_idx]
+
 if __name__ == '__main__':
     data = pd.read_csv('/home/shohokka/Dropbox/~Tutkimus/ManuRevising/CxSystem/gamma_config/gamma_55mtype_anatconf_template.csv', index_col='mtype')
-    for k in range(5):
+    for k in range(7,10):
         x = data.iloc[k]
         #simulatePC(dendritic_extent, Area_tot_pyram, EL, V_res, VT, fract_areas, show_plot=True)
-        simulatePC(int(x.dendritic_extent), x.Area_tot_pyram*um**2, EL=x.EL*mV, V_res=x.V_res*mV, VT=x.VT*mV,fract_areas=eval(x.fract_areas),show_plot=False)
+        rheo = simulatePC(int(x.dendritic_extent), x.Area_tot_pyram*um**2, EL=x.EL*mV, V_res=x.V_res*mV, VT=x.VT*mV,fract_areas=eval(x.fract_areas),show_plot=False)
+        print '%s\t\t%.1f*pA' % (x.name, rheo/pA)
