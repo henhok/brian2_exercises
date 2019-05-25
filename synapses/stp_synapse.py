@@ -136,18 +136,20 @@ H = PoissonGroup(1, 50*Hz)
 # R - resources ie. presynaptic vesicles
 # Whether to have ge_post += U*R*w or R*w is a question of taste (what "w" represents; release of U*all_vesicles or all_vesicles)
 S = Synapses(H, G,
-             model='dR/dt = (1-R)/taurec1 : 1 (clock-driven)',
+             model='dR/dt = (1-R)/taurec1 : 1 (clock-driven)',  # <-- UPDATE 5/2019 // works with (event-driven) from Brian2 2.1.3(?) onwards
              on_pre=''' ge_post += R * w
                         R = (1-U)*R ''')
 
 # Event-driven depressing
-# (because for some reason Brian2 refuses to solve the eq above)
+# (because for some reason Brian2 refuses to solve the eq above -- UPDATE 5/2019: diff eq works as event-driven, no need for lastupdate hassle)
 # Think: R_new = whatever resources we had + what was recovered after previous spike
 S_alt = Synapses(H, G,
-             model='R:1',
+             model='''  R : 1
+                        lastupdate : second''',   # Brian 2.1.3 needs this line
              on_pre=''' R = R + (1-R)*(1 - exp(-(t-lastupdate)/taurec2))
                         ge_post += R * w
-                        R = (1-U)*R''')
+                        R = (1-U)*R
+                        lastupdate = t''')  # Brian 2.1.3 needs this line
 
 
 
@@ -172,12 +174,14 @@ S2 = Synapses(H, G,
 # Facilitating event-driven
 S2_alt = Synapses(H, G,
              model=''' R : 1
-                       u : 1 ''',
+                       u : 1 
+                       lastupdate : second''',
              on_pre=''' R = R + (1-R)*(1 - exp(-(t-lastupdate)/taurec2))
                         u = u + (U1-u)*(1 - exp(-(t-lastupdate)/taufacil))
                         ge_post += R * w
                         R = (1-u)*R
-                        u = u + U1*(1-u)''')
+                        u = u + U1*(1-u)
+                        lastupdate = t''')
 #u = u * exp(-(t-lastupdate)/taufacil)
 
 

@@ -74,17 +74,17 @@ class ConnectivityData(object):
         pre_and_post.columns = ['presynaptic_group', 'postsynaptic_group', 'target_compartment']
 
         # Compute number of synapses per postsynaptic target
-        n_syns_per_target = {k: connections_df.loc[k].n_synapses / ConnectivityData.cell_counts[pre_and_post.loc[k].postsynaptic_group]
-                             for k in connections_df.index}
-        n_syns_per_target = pd.DataFrame.from_dict(n_syns_per_target, orient='index')
-        n_syns_per_target.columns = ['n_syns_per_target']
+        # n_syns_per_target = {k: connections_df.loc[k].n_synapses / ConnectivityData.cell_counts[pre_and_post.loc[k].postsynaptic_group]
+        #                      for k in connections_df.index}
+        # n_syns_per_target = pd.DataFrame.from_dict(n_syns_per_target, orient='index')
+        # n_syns_per_target.columns = ['n_syns_per_target']
 
         # Split pre- and postsynaptic group into group type and layer
         # ...
 
 
 
-        final_df = pd.concat([connections_df, pre_and_post, n_syns_per_target], axis=1)
+        final_df = pd.concat([connections_df, pre_and_post], axis=1)   #, n_syns_per_target], axis=1)
 
         return final_df
 
@@ -127,9 +127,9 @@ class ConnectivityData(object):
         graph = nx.MultiDiGraph(c_edges)
         agraph = nx.nx_agraph.to_agraph(graph)
 
-        agraph.draw('pathways.png', prog='circo')
-        #nx.draw_circular(agraph, with_labels=True)
-        #plt.show()
+        #agraph.draw('pathways.png', prog='circo')
+        nx.draw_circular(agraph, with_labels=True)
+        plt.show()
 
 
     # def printElements(self):
@@ -165,12 +165,12 @@ def plotdot(dotfile_path):
 
 
 if __name__ == '__main__':
-    fixedconn = ConnectivityData('fixed_connections.bz2')
+    #fixedconn = ConnectivityData('/opt3/tmp/rev2_gamma_microcircuits/step1gamma_fixed_conn_20181106_22234885_default_config_python_1000ms.bz2')
     # fixedconn.connections_df.to_csv('fixed_conn.csv')
-    fixedconn.plotNetwork(min_synapses=180000)
+    #fixedconn.plotNetwork(min_synapses=5000)
 
     # fixedconn = ConnectivityData('/opt3/tmp/01_cxs_rev1/27_fixed_connections_20180102_16021029_default_config_Cpp_1500ms.bz2')
     #fixedconn.writeDot()
     # plotdot('baabaa.dot')
     # fixedconn.plotNetwork(min_synapses=100)
-    # AnalyzeNetworks('/opt3/tmp/DataRepo/2018-01_Microcircuit_diversity/', '27_fixed_connections')
+    AnalyzeNetworks('/opt3/tmp/rev2_gamma_microcircuits/', 'step2gamma_fixed_conn')

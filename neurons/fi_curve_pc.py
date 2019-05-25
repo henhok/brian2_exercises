@@ -89,24 +89,33 @@ def simulatePC(dendritic_extent, Area_tot_pyram, EL, V_res, VT, fract_areas, sho
                                                 gapost=1 / (neuron_namespace['Ra'][0]),
                                                 I_dendr="Idendr_soma", vmself="vm",
                                                 vmpre="vm_a0", vmpost="vm_basal")
-    neuron_equ += Equations('I_dendr = gapre*(vmpre-vmself) + gapost*(vmpost-vmself) : amp',
-                                                gapre=1 / (neuron_namespace['Ra'][2]),
-                                                gapost=1 / (neuron_namespace['Ra'][1]),
-                                                I_dendr="Idendr_a0", vmself="vm_a0", vmpre="vm_a1", vmpost="vm")
 
-    # Defining decay between apical dendrite compartments
-    for _ii in arange(1, dendritic_extent):
+    if dendritic_extent > 0:
         neuron_equ += Equations('I_dendr = gapre*(vmpre-vmself) + gapost*(vmpost-vmself) : amp',
-                                                    gapre=1 / (neuron_namespace['Ra'][_ii]),
-                                                    gapost=1 / (neuron_namespace['Ra'][_ii - 1]),
-                                                    I_dendr="Idendr_a%d" % _ii, vmself="vm_a%d" % _ii,
-                                                    vmpre="vm_a%d" % (_ii + 1), vmpost="vm_a%d" % (_ii - 1))
+                                                    gapre=1 / (neuron_namespace['Ra'][2]),
+                                                    gapost=1 / (neuron_namespace['Ra'][1]),
+                                                    I_dendr="Idendr_a0", vmself="vm_a0", vmpre="vm_a1", vmpost="vm")
 
-    neuron_equ += Equations('I_dendr = gapost*(vmpost-vmself) : amp',
-                                                I_dendr="Idendr_a%d" % dendritic_extent,
-                                                gapost=1 / (neuron_namespace['Ra'][-1]),
-                                                vmself="vm_a%d" % dendritic_extent,
-                                                vmpost="vm_a%d" % (dendritic_extent - 1))
+        # Defining decay between apical dendrite compartments
+
+        for _ii in arange(1, dendritic_extent):
+            neuron_equ += Equations('I_dendr = gapre*(vmpre-vmself) + gapost*(vmpost-vmself) : amp',
+                                                        gapre=1 / (neuron_namespace['Ra'][_ii]),
+                                                        gapost=1 / (neuron_namespace['Ra'][_ii - 1]),
+                                                        I_dendr="Idendr_a%d" % _ii, vmself="vm_a%d" % _ii,
+                                                        vmpre="vm_a%d" % (_ii + 1), vmpost="vm_a%d" % (_ii - 1))
+
+        neuron_equ += Equations('I_dendr = gapost*(vmpost-vmself) : amp',
+                                                    I_dendr="Idendr_a%d" % dendritic_extent,
+                                                    gapost=1 / (neuron_namespace['Ra'][dendritic_extent-1]),
+                                                    vmself="vm_a%d" % dendritic_extent,
+                                                    vmpost="vm_a%d" % (dendritic_extent - 1))
+
+    # If there's only one apical dendrite compartment
+    else:
+        neuron_equ += Equations('I_dendr = gapre*(vmpre-vmself)  : amp',
+                                gapre=1 / (neuron_namespace['Ra'][1]),
+                                I_dendr="Idendr_a0", vmself="vm_a0", vmpre="vm")
 
 
     group = NeuronGroup(num_neurons, neuron_equ, threshold='vm > ' + repr(Vcut),
@@ -152,8 +161,11 @@ def simulatePC(dendritic_extent, Area_tot_pyram, EL, V_res, VT, fract_areas, sho
     return group.I[rheo_idx]
 
 if __name__ == '__main__':
-    data = pd.read_csv('/home/shohokka/Dropbox/~Tutkimus/ManuRevising/CxSystem/gamma_config/gamma_55mtype_anatconf_template.csv', index_col='mtype')
-    for k in range(7,10):
+    # data = pd.read_csv('/home/shohokka/Dropbox/~Tutkimus/ManuRevising/CxSystem/gamma_config/gamma_55mtype_anatconf_template.csv', index_col='mtype')
+    data = pd.read_csv(
+        '/home/shohokka/Dropbox/~Tutkimus/ManuRevising/CxSystem/gamma_config/step2_physio/step2_physioconf_template.csv',
+        index_col='step2a_group')
+    for k in range(0,7):
         x = data.iloc[k]
         #simulatePC(dendritic_extent, Area_tot_pyram, EL, V_res, VT, fract_areas, show_plot=True)
         rheo = simulatePC(int(x.dendritic_extent), x.Area_tot_pyram*um**2, EL=x.EL*mV, V_res=x.V_res*mV, VT=x.VT*mV,fract_areas=eval(x.fract_areas),show_plot=False)
