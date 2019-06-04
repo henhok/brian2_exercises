@@ -1,14 +1,14 @@
 # Visualize neural network connectivity using NetworkX and PyGraphviz
 
 from __future__ import division
-from brian2 import *
+#from brian2 import *
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib
 import networkx as nx
 import bz2
-import cPickle as pickle
+#import cPickle as pickle
 import os
 import pygraphviz as gv
 
@@ -40,8 +40,9 @@ class ConnectivityData(object):
         self.datafilepath = datafile
 
         with bz2.BZ2File(datafile, 'rb') as fi:
-            data = pickle.load(fi)
-            fi.close()
+            #data = pickle.load(fi, compression=None)
+            data = pd.read_pickle(fi, compression=None)
+            #fi.close()
 
         # Exclude not connection keys and excluded keys
         all_keys_to_exclude = not_connection_keys + keys_to_exclude
@@ -106,7 +107,7 @@ class ConnectivityData(object):
         }
 
         if verbose is True:
-            print 'Synapses %d\t\tSynapses per neuron: %d\t\tPathways: %d' % (N_synapses_total, mean_syns_per_neuron, N_pathways)
+            print ('Synapses %d\t\tSynapses per neuron: %d\t\tPathways: %d' % (N_synapses_total, mean_syns_per_neuron, N_pathways))
 
         return connection_stats
 
@@ -120,9 +121,9 @@ class ConnectivityData(object):
         if verbose is True:
             n_synapses_total = int(sum(self.connections_df.n_synapses))
             for i in range(len(c)):
-                print '%s -> %s: %d synapses (%.2f)' % (c.iloc[i].presynaptic_group, c.iloc[i].postsynaptic_group, c.iloc[i].n_synapses, 100*c.iloc[i].n_synapses/n_synapses_total)
+                print ('%s -> %s: %d synapses (%.2f)' % (c.iloc[i].presynaptic_group, c.iloc[i].postsynaptic_group, c.iloc[i].n_synapses, 100*c.iloc[i].n_synapses/n_synapses_total))
 
-            print 'Total %d connections with minimum %d synapses' % (len(c), min_synapses)
+            print ('Total %d connections with minimum %d synapses' % (len(c), min_synapses))
 
         graph = nx.MultiDiGraph(c_edges)
         agraph = nx.nx_agraph.to_agraph(graph)
@@ -148,11 +149,11 @@ def AnalyzeNetworks(connectivity_path, filename_prefix):
     connectivity_files = [connfile for connfile in os.listdir(connectivity_path)
                                  if filename_prefix in connfile]
     N_microcircuits = len(connectivity_files)
-    print 'Analyzing %d microcircuits...' % N_microcircuits
+    print ('Analyzing %d microcircuits...' % N_microcircuits)
 
     allstats = []
     for i in range(N_microcircuits):
-        print connectivity_files[i]
+        print (connectivity_files[i])
         current_microcircuit = ConnectivityData(connectivity_path + connectivity_files[i]).describe()
         allstats.append(current_microcircuit)
 
@@ -165,12 +166,12 @@ def plotdot(dotfile_path):
 
 
 if __name__ == '__main__':
-    #fixedconn = ConnectivityData('/opt3/tmp/rev2_gamma_microcircuits/step1gamma_fixed_conn_20181106_22234885_default_config_python_1000ms.bz2')
+    fixedconn = ConnectivityData('/opt3/tmp/p3_transition/step2_microcircuit_20190604_20441334_python_1000ms.bz2')
     # fixedconn.connections_df.to_csv('fixed_conn.csv')
-    #fixedconn.plotNetwork(min_synapses=5000)
+    fixedconn.plotNetwork(min_synapses=300000)
 
     # fixedconn = ConnectivityData('/opt3/tmp/01_cxs_rev1/27_fixed_connections_20180102_16021029_default_config_Cpp_1500ms.bz2')
     #fixedconn.writeDot()
     # plotdot('baabaa.dot')
     # fixedconn.plotNetwork(min_synapses=100)
-    AnalyzeNetworks('/opt3/tmp/rev2_gamma_microcircuits/', 'step2gamma_fixed_conn')
+    #AnalyzeNetworks('/opt3/tmp/rev2_gamma_microcircuits/', 'step2gamma_fixed_conn')
