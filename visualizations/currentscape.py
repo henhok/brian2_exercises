@@ -1,3 +1,12 @@
+# This is a script for plotting currentscapes from CxSystem result files. Only pointlike neurons!
+# For computing currents it needs: membrane voltage, conductances, reversal potentials.
+# Check that inward currents are downwards and outward currents upwards in the final plot (convention).
+#
+# Currentscape plotting code adapted (tbh, copy-pasted) from
+# https://datadryad.org/resource/doi:10.5061/dryad.d0779mb
+#
+# For example currentscapes, see Alonso & Marder 2019 eLife.
+
 import bz2
 import pandas as pd
 import numpy as np
@@ -47,10 +56,13 @@ def compute_currents(data, cell_type, cell_ix, leak_params=None, visualize=False
     for cond_type in all_synaptic_conductances:
         current_traces[cond_type] = conductance_traces[cond_type] * scaling[cond_type] * (E[cond_type] - vm)
 
+        if cond_type == 'ge_nmda_soma':  # For some reason, the ge_nmda in CxSystem is not scaled by the Mg-block fn B
+            current_traces[cond_type] = current_traces[cond_type] * B(vm)
+
+
     current_traces['g_leak_soma'] = conductance_traces['g_leak_soma'] * (E['g_leak_soma'] - vm)
 
-        # if cond_type == 'ge_nmda_soma':
-        #     current_traces[cond_type] = current_traces[cond_type] * B(vm)
+
 
     if visualize:
         plt.figure()
@@ -73,7 +85,6 @@ def compute_currents(data, cell_type, cell_ix, leak_params=None, visualize=False
 
     return vm/mV, currents_array
 
-# Code adapted from Alonso&Marder
 def plotCurrentscape(voltage, currents):
     # make a copy of currents
     # CURRENTSCAPE CALCULATION STARTS HERE.
@@ -118,13 +129,13 @@ def plotCurrentscape(voltage, currents):
 
     # PLOT VOLTAGE TRACE
     xmax = len(voltage)
-    swthres = -50
+    swthres = -70
     ax = plt.subplot2grid((7, 1), (0, 0), rowspan=2)
     t = arange(0, len(voltage))
     plt.plot(t, voltage, color='black', lw=1.)
     plt.plot(t, np.ones(len(t)) * swthres, ls='dashed', color='black', lw=0.75)
-    plt.vlines(1, -50, -20, lw=1)
-    plt.ylim(-70, 30)
+    plt.vlines(1, -70, -40, lw=1)
+    plt.ylim(-90, 30)
     plt.xlim(0, xmax)
     plt.axis('off')
 
@@ -134,8 +145,9 @@ def plotCurrentscape(voltage, currents):
     plt.plot(5. * np.ones(len(nnPD)), color='black', ls=':', lw=1)
     plt.plot(50. * np.ones(len(nnPD)), color='black', ls=':', lw=1)
     plt.plot(500. * np.ones(len(nnPD)), color='black', ls=':', lw=1)
+    plt.plot(5000. * np.ones(len(nnPD)), color='black', ls=':', lw=1)
     plt.yscale('log')
-    plt.ylim(0.01, 1500)
+    plt.ylim(0.01, 5000)
     plt.xlim(0, xmax)
     plt.axis('off')
 
@@ -157,20 +169,37 @@ def plotCurrentscape(voltage, currents):
     plt.plot(5. * np.ones(len(nnPD)), color='black', ls=':', lw=1)
     plt.plot(50. * np.ones(len(nnPD)), color='black', ls=':', lw=1)
     plt.plot(500. * np.ones(len(nnPD)), color='black', ls=':', lw=1)
+    plt.plot(5000. * np.ones(len(nnPD)), color='black', ls=':', lw=1)
     plt.yscale('log')
-    plt.ylim(1500, 0.01)
+    plt.ylim(5000, 0.01)
     plt.xlim(0, xmax)
     plt.axis('off')
     plt.subplots_adjust(wspace=0, hspace=0)
     #return fig
 
-    plt.show()
-
+    plt.savefig('step1_nmda_ca15.pdf', dpi=600)
+    # plt.show()
 
 if __name__ == '__main__':
-    filename = './data/step2_eifstp_gabab_Jeigeneric_20190905_16080985_calcium_concentration2.0_python_5000ms.bz2'
+    # STEP 2
+    # filename = './data/step2_gabab_Jeigeneric_fig3params_20190910_12114185_calcium_concentration1.5_python_5000ms.bz2'
+    # filename = './data/step2_gabab_Jeigeneric_fig3params_20190910_12114336_calcium_concentration2.0_python_5000ms.bz2'
+    # filename = './data/argh_step2_nmda_gabab_Jeigeneric_fig3params_20190910_19510952_calcium_concentration1.5_python_5000ms.bz2'
+    # filename = './data/argh_step2_nmda_gabab_Jeigeneric_fig3params_20190910_19511103_calcium_concentration2.0_python_5000ms.bz2'
+
+    # STEP 1
+    # filename = './data/argh_step1_gabab_customweights_fig3params_20190910_19442923_calcium_concentration1.5_python_5000ms.bz2'
+    # filename = './data/argh_step1_gabab_customweights_fig3params_20190910_19443073_calcium_concentration2.0_python_5000ms.bz2'
+    filename = './data/arghh_step1_nmda_gabab_customweights_fig3params_20190911_10272978_calcium_concentration1.5_tonic_depol_level1_python_5000ms.bz2'
+    # filename = './data/arghh_step1_nmda_gabab_customweights_fig3params_20190911_10273431_calcium_concentration2.0_tonic_depol_level1_python_5000ms.bz2'
+
+
+
     data = unpack_results(filename)
     leak_params = {'g_leak': 4.77 * nS, 'E_leak': -73.66 * mV}
-    vm, currents = compute_currents(data, 'NG7_L4_SS_L4', cell_ix=0, leak_params=leak_params, visualize=True)
+    vm, currents = compute_currents(data, 'NG19_L4_SS_L4', cell_ix=15, leak_params=leak_params, visualize=False)
 
-    plotCurrentscape(vm, currents)
+    t_start = 30000
+    t_end = 50000
+
+    plotCurrentscape(vm[t_start:t_end], (-1)*currents[:, t_start:t_end])
