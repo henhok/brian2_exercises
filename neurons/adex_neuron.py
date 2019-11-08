@@ -44,8 +44,8 @@ G = NeuronGroup(1, eqs, threshold='vm > ' + repr(Vcut),
                 reset='vm = ' + repr(V_res) + '; w=w+' + repr(b),
                 refractory=refr_time, method='euler')
 
-group.w = 0*pA
-group.vm = EL
+G.w = 0*pA
+G.vm = EL
 
 M = StateMonitor(G, ('vm', 'w'), record=True)
 M_spikes = SpikeMonitor(G)
